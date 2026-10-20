@@ -136,7 +136,6 @@
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
         }
 
-        /* Names container style */
         #namesInputContainer {
             margin-top: 16px;
             display: none;
@@ -259,7 +258,6 @@
             padding-bottom: 50px;
         }
 
-        /* Printable A4 Container */
         .a4-page {
             width: 210mm;
             min-height: 297mm;
@@ -406,7 +404,6 @@
                         </button>
                     </div>
 
-                    <!-- Additional Box for Names (Excel Paste Support) -->
                     <div id="namesInputContainer" class="visible">
                         <label for="namesTextarea">Enter or Paste Names from Excel (one name per line, matching Number of Sets):</label>
                         <textarea id="namesTextarea" rows="3" placeholder="Rahul Sharma&#10;Priya Singh&#10;Amit Kumar"></textarea>
@@ -442,7 +439,7 @@
                 <div class="action-bar">
                     <button class="btn btn-secondary" onclick="showScreen1()">&larr; Back to Topic List</button>
                     <div style="font-size: 0.9rem; color: var(--text-muted);">
-                        ✏️ <i>Click anywhere on text to type/edit freely.</i>
+                        ✏️ <i>Click anywhere on text to type/edit freely. Topics are uniquely randomized for each set.</i>
                     </div>
                     <div style="display: flex; gap: 8px;">
                         <button class="btn btn-secondary" onclick="addNewQuestionToAll()">➕ Add Custom Question</button>
@@ -622,7 +619,6 @@
         const topicsPerSet = parseInt(document.getElementById('numTopicsSelect').value) || 1;
         const totalSets = parseInt(document.getElementById('numSets').value) || 1;
 
-        // Retrieve names from textarea box (pasted from excel or written)
         const namesRaw = document.getElementById('namesTextarea').value;
         let namesList = namesRaw.split('\n').map(n => n.trim()).filter(n => n.length > 0);
 
@@ -635,6 +631,7 @@
         wrapper.innerHTML = '';
 
         for (let setIdx = 1; setIdx <= totalSets; setIdx++) {
+            // Completely independent random shuffle for each student set to ensure uniqueness
             const shuffledPool = shuffle(selectedTopics);
             const chosenTopics = shuffledPool.slice(0, topicsPerSet);
 
@@ -643,9 +640,7 @@
 
             const setLetter = String.fromCharCode(64 + setIdx);
             
-            // Assign name from list if available, otherwise default to Set name format
             let studentName = namesList[setIdx - 1] ? namesList[setIdx - 1] : `Set_${setLetter}`;
-            // Clean filename friendly string for attribute
             let cleanStudentName = studentName.replace(/[^a-zA-Z0-9_-]/g, "_");
             page.dataset.fileName = `${cleanStudentName}_${selectedClass}_Set_${setLetter}`;
 
@@ -704,7 +699,6 @@
         });
     }
 
-    // High-Quality Image Export with custom filename: name_Class_Sets (e.g. Rahul_1st_Year_Set_A.png)
     async function downloadAllImages() {
         const pages = document.querySelectorAll('.a4-page');
         if (pages.length === 0) return;
