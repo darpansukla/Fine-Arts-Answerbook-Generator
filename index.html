@@ -22,8 +22,8 @@
             --page-margin-lr: 3mm;
             --base-font-size: 11pt;
             --line-height: 1.35;
-            --question-gap: 10px;
-            --footer-gap: 8px;
+            --question-gap: 8px;
+            --footer-gap: 6px;
         }
 
         * {
@@ -286,15 +286,15 @@
 
         .a4-header {
             border-bottom: 1px solid #e2e8f0;
-            padding-bottom: 4px;
-            margin-bottom: 8px;
+            padding-bottom: 3px;
+            margin-bottom: 6px;
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
         }
 
         .a4-header h2 {
-            font-size: calc(var(--base-font-size) * 1.25);
+            font-size: calc(var(--base-font-size) * 1.2);
             text-transform: uppercase;
             color: var(--text-dark);
             outline: none;
@@ -310,14 +310,12 @@
         .q-item {
             margin-bottom: var(--question-gap);
             position: relative;
-            page-break-inside: avoid;
-            break-inside: avoid;
         }
 
         .q-title {
             font-weight: bold;
             font-size: calc(var(--base-font-size) * 1.05);
-            margin-bottom: 2px;
+            margin-bottom: 1px;
             color: var(--text-dark);
             outline: none;
         }
@@ -333,7 +331,7 @@
 
         .a4-footer {
             margin-top: var(--footer-gap);
-            padding-top: 4px;
+            padding-top: 3px;
             border-top: 1px solid #e2e8f0;
             text-align: center;
             font-size: calc(var(--base-font-size) * 0.85);
@@ -396,18 +394,18 @@
                             <option value="1st Year">1st Year</option>
                             <option value="2nd Year">2nd Year</option>
                             <option value="3rd Year">3rd Year</option>
-                            <option value="4th Year">4th Year</option>
+                            <option value="4th Year" selected>4th Year</option>
                             <option value="5th Year-A">5th Year-A</option>
                             <option value="5th Year-B">5th Year-B</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="numTopicsSelect">Topics Per Set:</label>
-                        <input type="number" id="numTopicsSelect" min="1" value="8">
+                        <input type="number" id="numTopicsSelect" min="1" value="5">
                     </div>
                     <div class="form-group">
                         <label for="numSets">Number of Sets:</label>
-                        <input type="number" id="numSets" min="1" value="3" oninput="toggleNamesBox()">
+                        <input type="number" id="numSets" min="1" value="1" oninput="toggleNamesBox()">
                     </div>
                     <div class="form-group">
                         <button class="btn" id="generateBtn" onclick="generateQuestionPapers()" disabled>
@@ -417,7 +415,7 @@
 
                     <div id="namesInputContainer" class="visible">
                         <label for="namesTextarea">Enter or Paste Names from Excel (one name per line, matching Number of Sets):</label>
-                        <textarea id="namesTextarea" rows="3" placeholder="Rahul Sharma&#10;Priya Singh&#10;Amit Kumar"></textarea>
+                        <textarea id="namesTextarea" rows="3" placeholder="Jetha">Jetha</textarea>
                     </div>
                 </div>
             </div>
@@ -450,7 +448,7 @@
                 <div class="action-bar">
                     <button class="btn btn-secondary" onclick="showScreen1()">&larr; Back to Topic List</button>
                     <div style="font-size: 0.9rem; color: var(--text-muted);">
-                        ✏️ <i>Click anywhere on text to type/edit freely. Topics are uniquely randomized with automatic multi-page flow.</i>
+                        ✏️ <i>Continuous content flow engine active. Zero unnecessary blank spaces.</i>
                     </div>
                     <div style="display: flex; gap: 8px;">
                         <button class="btn btn-secondary" onclick="addNewQuestionToAll()">➕ Add Custom Question</button>
@@ -473,11 +471,11 @@
                     </div>
                     <div class="form-group">
                         <label for="questionGapInput">Question Gap (px):</label>
-                        <input type="number" id="questionGapInput" value="10" min="2" max="40" onchange="updatePageStyles()">
+                        <input type="number" id="questionGapInput" value="8" min="2" max="40" onchange="updatePageStyles()">
                     </div>
                     <div class="form-group">
                         <label for="footerGapInput">Footer Top Gap (px):</label>
-                        <input type="number" id="footerGapInput" value="8" min="0" max="50" onchange="updatePageStyles()">
+                        <input type="number" id="footerGapInput" value="6" min="0" max="50" onchange="updatePageStyles()">
                     </div>
                 </div>
             </div>
@@ -591,8 +589,8 @@
         const marginTB = document.getElementById('marginTBInput').value ?? 3;
         const marginLR = document.getElementById('marginLRInput').value ?? 3;
         const fontSize = document.getElementById('fontSizeInput').value ?? 11;
-        const questionGap = document.getElementById('questionGapInput').value ?? 10;
-        const footerGap = document.getElementById('footerGapInput').value ?? 8;
+        const questionGap = document.getElementById('questionGapInput').value ?? 8;
+        const footerGap = document.getElementById('footerGapInput').value ?? 6;
 
         document.documentElement.style.setProperty('--page-margin-tb', `${marginTB}mm`);
         document.documentElement.style.setProperty('--page-margin-lr', `${marginLR}mm`);
@@ -621,8 +619,9 @@
     }
 
     /**
-     * Continuous Multi-Page Flow Engine:
-     * Calculates exact pixel heights dynamically to ensure continuous flow across standard A4 pages without cutting content.
+     * Continuous Token-Level / Sub-Block Splitting Engine:
+     * Chops individual questions into smaller logical text chunks/lines or splits paragraphs 
+     * to maximize vertical page utilization without leaving unnecessary blank areas.
      */
     function generateQuestionPapers() {
         const selectedCbs = document.querySelectorAll('.topic-cb:checked');
@@ -675,52 +674,114 @@
             const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
             const paddingBottom = parseFloat(computedStyle.paddingBottom) || 0;
             const pageInnerHeight = tempPage.clientHeight - paddingTop - paddingBottom;
-            const availableHeight = pageInnerHeight - 90; // Exact header/footer footprint budget
+            const availableHeight = pageInnerHeight - 75; // Maximum space utilization footprint
 
-            let pagesContent = [];
-            let currentPageItems = [];
-            let currentHeight = 0;
-            const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--question-gap')) || 10;
-
+            // Flatten questions into individual paragraphs/lines/sub-blocks for continuous flow packing
+            let queueBlocks = [];
             chosenTopics.forEach((topic) => {
                 const snPrefix = topic.serialNo ? `${topic.serialNo}. ` : '';
-                const qDiv = document.createElement('div');
-                qDiv.className = 'q-item';
-                qDiv.innerHTML = `
-                    <button class="delete-q-btn">✕ Remove</button>
-                    <div class="q-title">${escapeHtml(snPrefix)}${escapeHtml(topic.name)}</div>
-                    <div class="q-content">${escapeHtml(topic.content)}</div>
-                `;
-                measureBody.appendChild(qDiv);
-                const itemHeight = qDiv.offsetHeight + gap;
-                measureBody.removeChild(qDiv);
-
-                if (currentHeight + itemHeight > availableHeight && currentPageItems.length > 0) {
-                    pagesContent.push(currentPageItems);
-                    currentPageItems = [topic];
-                    currentHeight = itemHeight;
-                } else {
-                    currentPageItems.push(topic);
-                    currentHeight += itemHeight;
-                }
+                // Push title block
+                queueBlocks.push({
+                    type: 'title',
+                    text: `${snPrefix}${topic.name}`
+                });
+                // Split content paragraphs by newline
+                const paragraphs = topic.content.split('\n').filter(p => p.trim().length > 0);
+                paragraphs.forEach(para => {
+                    queueBlocks.push({
+                        type: 'content',
+                        text: para
+                    });
+                });
             });
-            if (currentPageItems.length > 0) {
-                pagesContent.push(currentPageItems);
+
+            // Packing blocks into pages filling maximum available vertical space
+            let pagesContent = [];
+            let currentPageBlocks = [];
+            let currentHeight = 0;
+            const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--question-gap')) || 8;
+
+            while (queueBlocks.length > 0) {
+                let block = queueBlocks.shift();
+
+                // Create test element to measure exact height
+                const testDiv = document.createElement('div');
+                testDiv.className = 'q-item';
+                if (block.type === 'title') {
+                    testDiv.innerHTML = `<div class="q-title">${escapeHtml(block.text)}</div>`;
+                } else {
+                    testDiv.innerHTML = `<div class="q-content">${escapeHtml(block.text)}</div>`;
+                }
+                measureBody.appendChild(testDiv);
+                let blockHeight = testDiv.offsetHeight + gap;
+                measureBody.removeChild(testDiv);
+
+                if (currentHeight + blockHeight <= availableHeight || currentPageBlocks.length === 0) {
+                    currentPageBlocks.push(block);
+                    currentHeight += blockHeight;
+                } else {
+                    // If block exceeds remaining page space, check if it's a long content paragraph that can be character/word split
+                    if (block.type === 'content' && block.text.length > 60) {
+                        let words = block.text.split(' ');
+                        let part1 = '';
+                        let part2 = '';
+                        let splitIdx = Math.floor(words.length / 2);
+                        
+                        // Iteratively find optimal split point that fits remaining height
+                        for (let k = 1; k < words.length; k++) {
+                            let sub1 = words.slice(0, k).join(' ');
+                            let sub2 = words.slice(k).join(' ');
+                            
+                            const subDiv = document.createElement('div');
+                            subDiv.className = 'q-item';
+                            subDiv.innerHTML = `<div class="q-content">${escapeHtml(sub1)}</div>`;
+                            measureBody.appendChild(subDiv);
+                            let subH = subDiv.offsetHeight + gap;
+                            measureBody.removeChild(subDiv);
+
+                            if (currentHeight + subH <= availableHeight) {
+                                part1 = sub1;
+                                part2 = sub2;
+                            } else {
+                                break;
+                            }
+                        }
+
+                        if (part1.length > 0) {
+                            currentPageBlocks.push({ type: 'content', text: part1 });
+                            pagesContent.push(currentPageBlocks);
+                            currentPageBlocks = [];
+                            currentHeight = 0;
+                            queueBlocks.unshift({ type: 'content', text: part2 });
+                            continue;
+                        }
+                    }
+
+                    // Otherwise push current page and start new page with this block
+                    pagesContent.push(currentPageBlocks);
+                    currentPageBlocks = [block];
+                    currentHeight = blockHeight;
+                }
+            }
+
+            if (currentPageBlocks.length > 0) {
+                pagesContent.push(currentPageBlocks);
             }
 
             document.body.removeChild(measureContainer);
 
-            // Render pages into DOM
-            pagesContent.forEach((pageTopics, pIdx) => {
+            const totalPages = pagesContent.length;
+
+            // Render exact paginated DOM blocks
+            pagesContent.forEach((pageBlocks, pIdx) => {
                 const pageNum = pIdx + 1;
-                const totalPages = pagesContent.length;
                 const page = document.createElement('div');
                 page.className = 'a4-page';
-                page.dataset.fileName = `${cleanStudentName}_${selectedClass}_Set_${setLetter}_page_${pageNum}`;
+                page.dataset.fileName = `${cleanStudentName}_${selectedClass}_Set_${setLetter}_page_${pageNum}_of_${totalPages}`;
 
                 let pageHTML = `
                     <div class="a4-header">
-                        <h2 contenteditable="true">Set ${setLetter} — ${escapeHtml(studentName)} ${totalPages > 1 ? `(Page ${pageNum}/${totalPages})` : ''}</h2>
+                        <h2 contenteditable="true">Set ${setLetter} — ${escapeHtml(studentName)} (Page ${pageNum}/${totalPages})</h2>
                         <div class="meta-info" contenteditable="true">
                             <div><strong>Class:</strong> ${escapeHtml(selectedClass)}</div>
                         </div>
@@ -728,21 +789,28 @@
                     <div class="a4-content-body">
                 `;
 
-                pageTopics.forEach((topic) => {
-                    const snPrefix = topic.serialNo ? `${topic.serialNo}. ` : '';
-                    pageHTML += `
-                        <div class="q-item">
-                            <button class="delete-q-btn" onclick="this.closest('.q-item').remove()" title="Delete Question">✕ Remove</button>
-                            <div class="q-title" contenteditable="true">${escapeHtml(snPrefix)}${escapeHtml(topic.name)}</div>
-                            <div class="q-content" contenteditable="true">${escapeHtml(topic.content)}</div>
-                        </div>
-                    `;
+                pageBlocks.forEach((block) => {
+                    if (block.type === 'title') {
+                        pageHTML += `
+                            <div class="q-item">
+                                <button class="delete-q-btn" onclick="this.closest('.q-item').remove()" title="Delete Block">✕ Remove</button>
+                                <div class="q-title" contenteditable="true">${escapeHtml(block.text)}</div>
+                            </div>
+                        `;
+                    } else {
+                        pageHTML += `
+                            <div class="q-item">
+                                <button class="delete-q-btn" onclick="this.closest('.q-item').remove()" title="Delete Block">✕ Remove</button>
+                                <div class="q-content" contenteditable="true">${escapeHtml(block.text)}</div>
+                            </div>
+                        `;
+                    }
                 });
 
                 pageHTML += `
                     </div>
                     <div class="a4-footer" contenteditable="true">
-                        ${escapeHtml(studentName)} | ${escapeHtml(selectedClass)} — Set ${setLetter} ${totalPages > 1 ? `| Page ${pageNum} of${totalPages}` : ''}
+                        ${escapeHtml(studentName)} | ${escapeHtml(selectedClass)} — Set ${setLetter} | Page ${pageNum} of ${totalPages}
                     </div>
                 `;
 
