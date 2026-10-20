@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Q&A Test Paper Generator</title>
-    <!-- Dependencies: PapaParse for CSV, html2canvas for High-Quality Image Export -->
+    <!-- Dependencies: PapaParse, html2canvas, and jsPDF for single-file multi-page PDF export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         :root {
             --primary: #1e3a8a;
@@ -179,6 +180,9 @@
 
         .btn-success { background-color: #16a34a; }
         .btn-success:hover { background-color: #15803d; }
+
+        .btn-danger { background-color: #dc2626; color: white; }
+        .btn-danger:hover { background-color: #b91c1c; }
 
         .table-container {
             max-height: calc(100vh - 300px);
@@ -450,9 +454,10 @@
                     <div style="font-size: 0.9rem; color: var(--text-muted);">
                         ✏️ <i>Continuous content flow engine active. Zero unnecessary blank spaces.</i>
                     </div>
-                    <div style="display: flex; gap: 8px;">
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                         <button class="btn btn-secondary" onclick="addNewQuestionToAll()">➕ Add Custom Question</button>
-                        <button class="btn btn-success" onclick="downloadAllImages()">📥 Download All Pages as Exact A4 Images</button>
+                        <button class="btn btn-success" onclick="downloadAllImages()">📥 Download All Images</button>
+                        <button class="btn btn-danger" onclick="downloadAllAsPDF()">📄 Download All as Single PDF</button>
                     </div>
                 </div>
 
@@ -680,12 +685,10 @@
             let queueBlocks = [];
             chosenTopics.forEach((topic) => {
                 const snPrefix = topic.serialNo ? `${topic.serialNo}. ` : '';
-                // Push title block
                 queueBlocks.push({
                     type: 'title',
                     text: `${snPrefix}${topic.name}`
                 });
-                // Split content paragraphs by newline
                 const paragraphs = topic.content.split('\n').filter(p => p.trim().length > 0);
                 paragraphs.forEach(para => {
                     queueBlocks.push({
@@ -704,7 +707,6 @@
             while (queueBlocks.length > 0) {
                 let block = queueBlocks.shift();
 
-                // Create test element to measure exact height
                 const testDiv = document.createElement('div');
                 testDiv.className = 'q-item';
                 if (block.type === 'title') {
@@ -720,14 +722,11 @@
                     currentPageBlocks.push(block);
                     currentHeight += blockHeight;
                 } else {
-                    // If block exceeds remaining page space, check if it's a long content paragraph that can be character/word split
                     if (block.type === 'content' && block.text.length > 60) {
                         let words = block.text.split(' ');
                         let part1 = '';
                         let part2 = '';
-                        let splitIdx = Math.floor(words.length / 2);
                         
-                        // Iteratively find optimal split point that fits remaining height
                         for (let k = 1; k < words.length; k++) {
                             let sub1 = words.slice(0, k).join(' ');
                             let sub2 = words.slice(k).join(' ');
@@ -757,7 +756,6 @@
                         }
                     }
 
-                    // Otherwise push current page and start new page with this block
                     pagesContent.push(currentPageBlocks);
                     currentPageBlocks = [block];
                     currentHeight = blockHeight;
@@ -772,7 +770,6 @@
 
             const totalPages = pagesContent.length;
 
-            // Render exact paginated DOM blocks
             pagesContent.forEach((pageBlocks, pIdx) => {
                 const pageNum = pIdx + 1;
                 const page = document.createElement('div');
@@ -856,12 +853,12 @@
 
             try {
                 const canvas = await html2canvas(page, {
-                    scale: 3, // High-res crisp export
+                    scale: 3,
                     useCORS: true,
                     logging: false,
                     backgroundColor: '#ffffff',
-                    width: 794,   // Standard A4 pixel width at 96 DPI
-                    height: 1123  // Standard A4 pixel height at 96 DPI
+                    width: 794,
+                    height: 1123
                 });
 
                 const imageURL = canvas.toDataURL('image/png');
@@ -878,6 +875,50 @@
             }
         }
 
+        deleteBtns.forEach(btn => btn.style.display = 'block');
+    }
+
+    /**
+     * Download all generated pages combined into a single PDF document using jsPDF.
+     */
+    async function downloadAllAsPDF() {
+        const pages = document.querySelectorAll('.a4-page');
+        if (pages.length === 0) return;
+
+        const deleteBtns = document.querySelectorAll('.delete-q-btn');
+        deleteBtns.forEach(btn => btn.style.display = 'none');
+
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+
+        for (let i = 0; i < pages.length; i++) {
+            const page = pages[i];
+
+            try {
+                const canvas = await html2canvas(page, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    backgroundColor: '#ffffff',
+                    width: 794,
+                    height: 1123
+                });
+
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+
+                if (i > 0) {
+                    pdf.addPage('a4', 'p');
+                }
+
+                pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+
+                await new Promise(resolve => setTimeout(resolve, 200));
+            } catch (error) {
+                console.error("Error adding page to PDF:", error);
+            }
+        }
+
+        pdf.save("Question_Papers_All_Sets.pdf");
         deleteBtns.forEach(btn => btn.style.display = 'block');
     }
 
