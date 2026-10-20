@@ -17,13 +17,13 @@
             --text-dark: #0f172a;
             --text-muted: #64748b;
 
-            /* Dynamic Styling Variables (Default 3mm margin, 11px font) */
+            /* Strict Default Settings: 0.3 cm margins = 3mm, 11 pt font size */
             --page-margin-tb: 3mm;
             --page-margin-lr: 3mm;
-            --base-font-size: 11px;
-            --line-height: 1.4;
-            --question-gap: 14px;
-            --footer-gap: 15px;
+            --base-font-size: 11pt;
+            --line-height: 1.35;
+            --question-gap: 10px;
+            --footer-gap: 8px;
         }
 
         * {
@@ -258,9 +258,13 @@
             padding-bottom: 50px;
         }
 
+        /* 
+          STRICT FIXED A4 DIMENSIONS: 210mm x 297mm 
+          Ensures absolute precise standard physical page boundaries.
+        */
         .a4-page {
             width: 210mm;
-            min-height: 297mm;
+            height: 297mm;
             padding: var(--page-margin-tb) var(--page-margin-lr);
             background: white;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
@@ -269,23 +273,28 @@
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
+            page-break-after: always;
+            break-after: page;
         }
 
         .a4-content-body {
             flex: 1;
+            overflow: hidden;
+            font-size: var(--base-font-size);
         }
 
         .a4-header {
             border-bottom: 1px solid #e2e8f0;
-            padding-bottom: 6px;
-            margin-bottom: 10px;
+            padding-bottom: 4px;
+            margin-bottom: 8px;
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
         }
 
         .a4-header h2 {
-            font-size: calc(var(--base-font-size) * 1.3);
+            font-size: calc(var(--base-font-size) * 1.25);
             text-transform: uppercase;
             color: var(--text-dark);
             outline: none;
@@ -301,6 +310,8 @@
         .q-item {
             margin-bottom: var(--question-gap);
             position: relative;
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
 
         .q-title {
@@ -316,13 +327,13 @@
             line-height: var(--line-height);
             color: #334155;
             white-space: pre-wrap;
-            padding-left: 15px;
+            padding-left: 12px;
             outline: none;
         }
 
         .a4-footer {
             margin-top: var(--footer-gap);
-            padding-top: 6px;
+            padding-top: 4px;
             border-top: 1px solid #e2e8f0;
             text-align: center;
             font-size: calc(var(--base-font-size) * 0.85);
@@ -439,34 +450,34 @@
                 <div class="action-bar">
                     <button class="btn btn-secondary" onclick="showScreen1()">&larr; Back to Topic List</button>
                     <div style="font-size: 0.9rem; color: var(--text-muted);">
-                        ✏️ <i>Click anywhere on text to type/edit freely. Topics are uniquely randomized for each set.</i>
+                        ✏️ <i>Click anywhere on text to type/edit freely. Topics are uniquely randomized with automatic multi-page flow.</i>
                     </div>
                     <div style="display: flex; gap: 8px;">
                         <button class="btn btn-secondary" onclick="addNewQuestionToAll()">➕ Add Custom Question</button>
-                        <button class="btn btn-success" onclick="downloadAllImages()">📥 Download All Pages as High-Quality Images</button>
+                        <button class="btn btn-success" onclick="downloadAllImages()">📥 Download All Pages as Exact A4 Images</button>
                     </div>
                 </div>
 
                 <div class="formatting-bar">
                     <div class="form-group">
                         <label for="marginTBInput">Top/Bottom Margin (mm):</label>
-                        <input type="number" id="marginTBInput" value="3" min="0" max="50" onchange="updatePageStyles()">
+                        <input type="number" id="marginTBInput" value="3" min="0" max="30" onchange="updatePageStyles()">
                     </div>
                     <div class="form-group">
                         <label for="marginLRInput">Left/Right Margin (mm):</label>
-                        <input type="number" id="marginLRInput" value="3" min="0" max="50" onchange="updatePageStyles()">
+                        <input type="number" id="marginLRInput" value="3" min="0" max="30" onchange="updatePageStyles()">
                     </div>
                     <div class="form-group">
-                        <label for="fontSizeInput">Font Size (px):</label>
-                        <input type="number" id="fontSizeInput" value="11" min="8" max="24" onchange="updatePageStyles()">
+                        <label for="fontSizeInput">Font Size (pt):</label>
+                        <input type="number" id="fontSizeInput" value="11" min="8" max="18" onchange="updatePageStyles()">
                     </div>
                     <div class="form-group">
                         <label for="questionGapInput">Question Gap (px):</label>
-                        <input type="number" id="questionGapInput" value="14" min="2" max="50" onchange="updatePageStyles()">
+                        <input type="number" id="questionGapInput" value="10" min="2" max="40" onchange="updatePageStyles()">
                     </div>
                     <div class="form-group">
                         <label for="footerGapInput">Footer Top Gap (px):</label>
-                        <input type="number" id="footerGapInput" value="15" min="0" max="100" onchange="updatePageStyles()">
+                        <input type="number" id="footerGapInput" value="8" min="0" max="50" onchange="updatePageStyles()">
                     </div>
                 </div>
             </div>
@@ -580,12 +591,12 @@
         const marginTB = document.getElementById('marginTBInput').value ?? 3;
         const marginLR = document.getElementById('marginLRInput').value ?? 3;
         const fontSize = document.getElementById('fontSizeInput').value ?? 11;
-        const questionGap = document.getElementById('questionGapInput').value ?? 14;
-        const footerGap = document.getElementById('footerGapInput').value ?? 15;
+        const questionGap = document.getElementById('questionGapInput').value ?? 10;
+        const footerGap = document.getElementById('footerGapInput').value ?? 8;
 
         document.documentElement.style.setProperty('--page-margin-tb', `${marginTB}mm`);
         document.documentElement.style.setProperty('--page-margin-lr', `${marginLR}mm`);
-        document.documentElement.style.setProperty('--base-font-size', `${fontSize}px`);
+        document.documentElement.style.setProperty('--base-font-size', `${fontSize}pt`);
         document.documentElement.style.setProperty('--question-gap', `${questionGap}px`);
         document.documentElement.style.setProperty('--footer-gap', `${footerGap}px`);
     }
@@ -609,6 +620,10 @@
         document.getElementById('screen2').classList.add('active');
     }
 
+    /**
+     * Continuous Multi-Page Flow Engine:
+     * Calculates exact pixel heights dynamically to ensure continuous flow across standard A4 pages without cutting content.
+     */
     function generateQuestionPapers() {
         const selectedCbs = document.querySelectorAll('.topic-cb:checked');
         const selectedIds = Array.from(selectedCbs).map(cb => parseInt(cb.value));
@@ -631,49 +646,109 @@
         wrapper.innerHTML = '';
 
         for (let setIdx = 1; setIdx <= totalSets; setIdx++) {
-            // Completely independent random shuffle for each student set to ensure uniqueness
             const shuffledPool = shuffle(selectedTopics);
             const chosenTopics = shuffledPool.slice(0, topicsPerSet);
 
-            const page = document.createElement('div');
-            page.className = 'a4-page';
-
             const setLetter = String.fromCharCode(64 + setIdx);
-            
             let studentName = namesList[setIdx - 1] ? namesList[setIdx - 1] : `Set_${setLetter}`;
             let cleanStudentName = studentName.replace(/[^a-zA-Z0-9_-]/g, "_");
-            page.dataset.fileName = `${cleanStudentName}_${selectedClass}_Set_${setLetter}`;
 
-            let pageHTML = `
+            // Measurement sandbox container
+            const measureContainer = document.createElement('div');
+            measureContainer.style.cssText = 'position: absolute; left: -9999px; top: 0; width: 210mm; visibility: hidden;';
+            document.body.appendChild(measureContainer);
+
+            const tempPage = document.createElement('div');
+            tempPage.className = 'a4-page';
+            tempPage.innerHTML = `
                 <div class="a4-header">
-                    <h2 contenteditable="true">Set ${setLetter} — ${escapeHtml(studentName)}</h2>
-                    <div class="meta-info" contenteditable="true">
-                        <div><strong>Class:</strong> ${escapeHtml(selectedClass)}</div>
-                    </div>
+                    <h2>Set ${setLetter} — ${escapeHtml(studentName)}</h2>
+                    <div class="meta-info"><div><strong>Class:</strong> ${escapeHtml(selectedClass)}</div></div>
                 </div>
-                <div class="a4-content-body">
+                <div class="a4-content-body" id="measureBody"></div>
+                <div class="a4-footer">${escapeHtml(studentName)} | ${escapeHtml(selectedClass)} — Set ${setLetter}</div>
             `;
+            measureContainer.appendChild(tempPage);
+            const measureBody = tempPage.querySelector('#measureBody');
+
+            const computedStyle = window.getComputedStyle(tempPage);
+            const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
+            const paddingBottom = parseFloat(computedStyle.paddingBottom) || 0;
+            const pageInnerHeight = tempPage.clientHeight - paddingTop - paddingBottom;
+            const availableHeight = pageInnerHeight - 90; // Exact header/footer footprint budget
+
+            let pagesContent = [];
+            let currentPageItems = [];
+            let currentHeight = 0;
+            const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--question-gap')) || 10;
 
             chosenTopics.forEach((topic) => {
                 const snPrefix = topic.serialNo ? `${topic.serialNo}. ` : '';
+                const qDiv = document.createElement('div');
+                qDiv.className = 'q-item';
+                qDiv.innerHTML = `
+                    <button class="delete-q-btn">✕ Remove</button>
+                    <div class="q-title">${escapeHtml(snPrefix)}${escapeHtml(topic.name)}</div>
+                    <div class="q-content">${escapeHtml(topic.content)}</div>
+                `;
+                measureBody.appendChild(qDiv);
+                const itemHeight = qDiv.offsetHeight + gap;
+                measureBody.removeChild(qDiv);
+
+                if (currentHeight + itemHeight > availableHeight && currentPageItems.length > 0) {
+                    pagesContent.push(currentPageItems);
+                    currentPageItems = [topic];
+                    currentHeight = itemHeight;
+                } else {
+                    currentPageItems.push(topic);
+                    currentHeight += itemHeight;
+                }
+            });
+            if (currentPageItems.length > 0) {
+                pagesContent.push(currentPageItems);
+            }
+
+            document.body.removeChild(measureContainer);
+
+            // Render pages into DOM
+            pagesContent.forEach((pageTopics, pIdx) => {
+                const pageNum = pIdx + 1;
+                const totalPages = pagesContent.length;
+                const page = document.createElement('div');
+                page.className = 'a4-page';
+                page.dataset.fileName = `${cleanStudentName}_${selectedClass}_Set_${setLetter}_page_${pageNum}`;
+
+                let pageHTML = `
+                    <div class="a4-header">
+                        <h2 contenteditable="true">Set ${setLetter} — ${escapeHtml(studentName)} ${totalPages > 1 ? `(Page ${pageNum}/${totalPages})` : ''}</h2>
+                        <div class="meta-info" contenteditable="true">
+                            <div><strong>Class:</strong> ${escapeHtml(selectedClass)}</div>
+                        </div>
+                    </div>
+                    <div class="a4-content-body">
+                `;
+
+                pageTopics.forEach((topic) => {
+                    const snPrefix = topic.serialNo ? `${topic.serialNo}. ` : '';
+                    pageHTML += `
+                        <div class="q-item">
+                            <button class="delete-q-btn" onclick="this.closest('.q-item').remove()" title="Delete Question">✕ Remove</button>
+                            <div class="q-title" contenteditable="true">${escapeHtml(snPrefix)}${escapeHtml(topic.name)}</div>
+                            <div class="q-content" contenteditable="true">${escapeHtml(topic.content)}</div>
+                        </div>
+                    `;
+                });
+
                 pageHTML += `
-                    <div class="q-item">
-                        <button class="delete-q-btn" onclick="this.closest('.q-item').remove()" title="Delete Question">✕ Remove</button>
-                        <div class="q-title" contenteditable="true">${escapeHtml(snPrefix)}${escapeHtml(topic.name)}</div>
-                        <div class="q-content" contenteditable="true">${escapeHtml(topic.content)}</div>
+                    </div>
+                    <div class="a4-footer" contenteditable="true">
+                        ${escapeHtml(studentName)} | ${escapeHtml(selectedClass)} — Set ${setLetter} ${totalPages > 1 ? `| Page ${pageNum} of${totalPages}` : ''}
                     </div>
                 `;
+
+                page.innerHTML = pageHTML;
+                wrapper.appendChild(page);
             });
-
-            pageHTML += `
-                </div>
-                <div class="a4-footer" contenteditable="true">
-                    ${escapeHtml(studentName)} | ${escapeHtml(selectedClass)} — Set ${setLetter}
-                </div>
-            `;
-
-            page.innerHTML = pageHTML;
-            wrapper.appendChild(page);
         }
 
         updatePageStyles();
@@ -681,13 +756,8 @@
     }
 
     function addNewQuestionToAll() {
-        const bodies = document.querySelectorAll('.a4-content-body');
-        if (bodies.length === 0) {
-            alert("Please generate question sets first!");
-            return;
-        }
-
-        bodies.forEach(body => {
+        const lastPageBody = document.querySelector('.a4-page:last-of-type .a4-content-body');
+        if (lastPageBody) {
             const newQ = document.createElement('div');
             newQ.className = 'q-item';
             newQ.innerHTML = `
@@ -695,10 +765,16 @@
                 <div class="q-title" contenteditable="true">New Question Title</div>
                 <div class="q-content" contenteditable="true">Type your custom question content or instructions here...</div>
             `;
-            body.appendChild(newQ);
-        });
+            lastPageBody.appendChild(newQ);
+        } else {
+            alert("Please generate question sets first!");
+        }
     }
 
+    /**
+     * Multi-page Image Export:
+     * Captures each physical A4 page container individually as a high-resolution standalone image file.
+     */
     async function downloadAllImages() {
         const pages = document.querySelectorAll('.a4-page');
         if (pages.length === 0) return;
@@ -708,14 +784,16 @@
 
         for (let i = 0; i < pages.length; i++) {
             const page = pages[i];
-            const fileTitle = page.dataset.fileName || `Student_${i + 1}`;
+            const fileTitle = page.dataset.fileName || `Page_${i + 1}`;
 
             try {
                 const canvas = await html2canvas(page, {
-                    scale: 3,
+                    scale: 3, // High-res crisp export
                     useCORS: true,
                     logging: false,
-                    backgroundColor: '#ffffff'
+                    backgroundColor: '#ffffff',
+                    width: 794,   // Standard A4 pixel width at 96 DPI
+                    height: 1123  // Standard A4 pixel height at 96 DPI
                 });
 
                 const imageURL = canvas.toDataURL('image/png');
@@ -726,7 +804,7 @@
                 link.click();
                 document.body.removeChild(link);
 
-                await new Promise(resolve => setTimeout(resolve, 400));
+                await new Promise(resolve => setTimeout(resolve, 300));
             } catch (error) {
                 console.error("Error generating image for " + fileTitle, error);
             }
