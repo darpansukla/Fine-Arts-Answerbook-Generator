@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q&A Test Paper Generator</title>
+    <!-- Dependencies: PapaParse for CSV, html2canvas for High-Quality Image Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-light: #3b82f6;
+            --bg-main: #f1f5f9;
+            --card-bg: #ffffff;
+            --border: #cbd5e1;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+
+            /* Dynamic Styling Variables (Default 3mm margin, 11px font) */
+            --page-margin-tb: 3mm;
+            --page-margin-lr: 3mm;
+            --base-font-size: 11px;
+            --line-height: 1.4;
+            --question-gap: 14px;
+            --footer-gap: 15px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 16px 32px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .status-pill {
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #f59e0b;
+        }
+
+        .status-dot.ready { background-color: #22c55e; }
+        .status-dot.error { background-color: #ef4444; }
+
+        main {
+            flex: 1;
+            padding: 24px 32px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .view-screen {
+            display: none;
+        }
+        .view-screen.active {
+            display: block;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+
+        .control-panel {
+            display: grid;
+            grid-template-columns: 2fr 1.2fr 1fr 1fr 1.2fr;
+            gap: 16px;
+            align-items: end;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--text-dark);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input[type="text"], input[type="number"], select {
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.2s ease;
+            background: white;
+        }
+
+        input[type="text"]:focus, input[type="number"]:focus, select:focus {
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:hover { background-color: var(--primary-light); }
+        .btn:disabled { background-color: #94a3b8; cursor: not-allowed; }
+
+        .btn-secondary {
+            background-color: #cbd5e1;
+            color: var(--text-dark);
+        }
+        .btn-secondary:hover { background-color: #94a3b8; }
+
+        .btn-success { background-color: #16a34a; }
+        .btn-success:hover { background-color: #15803d; }
+
+        .table-container {
+            max-height: calc(100vh - 300px);
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: white;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background-color: #f8fafc;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-weight: 700;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        tr:hover { background-color: #f8fafc; }
+
+        .col-cb { width: 50px; text-align: center; }
+        .col-sn { width: 140px; }
+        .col-topic { font-weight: 600; }
+
+        input.serial-input {
+            width: 100px;
+            padding: 6px 8px;
+            text-align: center;
+        }
+
+        .view-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 20px;
+            background: white;
+            padding: 16px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .formatting-bar {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+            align-items: end;
+        }
+
+        .a4-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+            padding-bottom: 50px;
+        }
+
+        /* Printable A4 Container */
+        .a4-page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: var(--page-margin-tb) var(--page-margin-lr);
+            background: white;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid #d1d5db;
+            position: relative;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .a4-content-body {
+            flex: 1;
+        }
+
+        .a4-header {
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 6px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .a4-header h2 {
+            font-size: calc(var(--base-font-size) * 1.3);
+            text-transform: uppercase;
+            color: var(--text-dark);
+            outline: none;
+        }
+
+        .a4-header .meta-info {
+            text-align: right;
+            font-size: calc(var(--base-font-size) * 0.9);
+            color: var(--text-dark);
+            outline: none;
+        }
+
+        .q-item {
+            margin-bottom: var(--question-gap);
+            position: relative;
+        }
+
+        .q-title {
+            font-weight: bold;
+            font-size: calc(var(--base-font-size) * 1.05);
+            margin-bottom: 2px;
+            color: var(--text-dark);
+            outline: none;
+        }
+
+        .q-content {
+            font-size: var(--base-font-size);
+            line-height: var(--line-height);
+            color: #334155;
+            white-space: pre-wrap;
+            padding-left: 15px;
+            outline: none;
+        }
+
+        .a4-footer {
+            margin-top: var(--footer-gap);
+            padding-top: 6px;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+            font-size: calc(var(--base-font-size) * 0.85);
+            color: var(--text-muted);
+            outline: none;
+        }
+
+        /* Editable visual highlight */
+        [contenteditable="true"]:hover {
+            background-color: #f0f9ff;
+            outline: 1px dashed var(--primary-light);
+        }
+
+        [contenteditable="true"]:focus {
+            background-color: #e0f2fe;
+            outline: 2px solid var(--primary-light);
+            border-radius: 2px;
+        }
+
+        /* Delete Question Button Style (Hidden during canvas export) */
+        .delete-q-btn {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 10px;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+        .q-item:hover .delete-q-btn {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Q&A Question Paper Generator</h1>
+        <div class="status-pill">
+            <span id="statusDot" class="status-dot"></span>
+            <span id="statusText">Connecting to Google Sheet...</span>
+        </div>
+    </header>
+
+    <main>
+        <!-- SCREEN 1 -->
+        <div id="screen1" class="view-screen active">
+            <div class="card">
+                <div class="control-panel">
+                    <div class="form-group">
+                        <label for="searchInput">Search Topic Name:</label>
+                        <input type="text" id="searchInput" placeholder="Type topic name..." onkeyup="filterTopics()">
+                    </div>
+                    <div class="form-group">
+                        <label for="classSelect">Class / Year:</label>
+                        <select id="classSelect">
+                            <option value="1st Year">1st Year</option>
+                            <option value="2nd Year">2nd Year</option>
+                            <option value="3rd Year">3rd Year</option>
+                            <option value="4th Year">4th Year</option>
+                            <option value="5th Year-A">5th Year-A</option>
+                            <option value="5th Year-B">5th Year-B</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="numTopicsSelect">Topics Per Set:</label>
+                        <input type="number" id="numTopicsSelect" min="1" value="8">
+                    </div>
+                    <div class="form-group">
+                        <label for="numSets">Number of Sets:</label>
+                        <input type="number" id="numSets" min="1" value="3">
+                    </div>
+                    <div class="form-group">
+                        <button class="btn" id="generateBtn" onclick="generateQuestionPapers()" disabled>
+                            Generate Sets &rarr;
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="padding: 0; overflow: hidden;">
+                <div style="padding: 12px 20px; background: #f8fafc; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 600; font-size: 0.9rem; color: var(--text-muted);">
+                        SELECTED TOPICS: <span id="selectedCount" style="color: var(--primary);">0</span>
+                    </span>
+                    <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;" onclick="clearAllSelections()">Clear All</button>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="col-cb"><input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)"></th>
+                                <th class="col-sn">Serial No. (e.g. 1, a, (A))</th>
+                                <th class="col-topic">Topic Name</th>
+                            </tr>
+                        </thead>
+                        <tbody id="topicsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 2 -->
+        <div id="screen2" class="view-screen">
+            <div class="view-controls">
+                <div class="action-bar">
+                    <button class="btn btn-secondary" onclick="showScreen1()">&larr; Back to Topic List</button>
+                    <div style="font-size: 0.9rem; color: var(--text-muted);">
+                        ✏️ <i>Click anywhere on text to type/edit freely. Use buttons below to add custom sections or questions.</i>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-secondary" onclick="addNewQuestionToAll()">➕ Add Custom Question</button>
+                        <button class="btn btn-success" onclick="downloadAllImages()">📥 Download All Pages as High-Quality Images</button>
+                    </div>
+                </div>
+
+                <div class="formatting-bar">
+                    <div class="form-group">
+                        <label for="marginTBInput">Top/Bottom Margin (mm):</label>
+                        <input type="number" id="marginTBInput" value="3" min="0" max="50" onchange="updatePageStyles()">
+                    </div>
+                    <div class="form-group">
+                        <label for="marginLRInput">Left/Right Margin (mm):</label>
+                        <input type="number" id="marginLRInput" value="3" min="0" max="50" onchange="updatePageStyles()">
+                    </div>
+                    <div class="form-group">
+                        <label for="fontSizeInput">Font Size (px):</label>
+                        <input type="number" id="fontSizeInput" value="11" min="8" max="24" onchange="updatePageStyles()">
+                    </div>
+                    <div class="form-group">
+                        <label for="questionGapInput">Question Gap (px):</label>
+                        <input type="number" id="questionGapInput" value="14" min="2" max="50" onchange="updatePageStyles()">
+                    </div>
+                    <div class="form-group">
+                        <label for="footerGapInput">Footer Top Gap (px):</label>
+                        <input type="number" id="footerGapInput" value="15" min="0" max="100" onchange="updatePageStyles()">
+                    </div>
+                </div>
+            </div>
+
+            <div id="a4PagesWrapper" class="a4-wrapper"></div>
+        </div>
+    </main>
+
+<script>
+    const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRqTLkBPtd5eUxoxPN54w9Xi6wJLq7e0PJwdSvGm7iHiYcp-gY4_XIr1f6KnLUs33fXBio91p2UP6sw/pub?gid=0&single=true&output=csv";
+
+    let allTopics = [];
+
+    window.addEventListener('DOMContentLoaded', () => {
+        Papa.parse(GOOGLE_SHEET_CSV_URL, {
+            download: true,
+            header: true,
+            skipEmptyLines: true,
+            complete: function(results) {
+                if (results.data && results.data.length > 0) {
+                    allTopics = results.data.map((item, idx) => ({
+                        id: idx,
+                        name: item['Topic Name'] || item['Topic'] || 'Untitled Topic',
+                        content: item['Topic Content'] || item['Content'] || 'No content available.',
+                        serialNo: String(idx + 1)
+                    }));
+
+                    setStatus("Data Loaded (" + allTopics.length + " Topics)", "ready");
+                    renderTable(allTopics);
+                } else {
+                    setStatus("No data found in sheet", "error");
+                }
+            },
+            error: function(err) {
+                setStatus("Failed to load Google Sheet", "error");
+                console.error(err);
+            }
+        });
+    });
+
+    function setStatus(text, state) {
+        document.getElementById('statusText').textContent = text;
+        const dot = document.getElementById('statusDot');
+        dot.className = 'status-dot ' + state;
+    }
+
+    function renderTable(topics) {
+        const tbody = document.getElementById('topicsTableBody');
+        tbody.innerHTML = '';
+
+        topics.forEach(topic => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="col-cb">
+                    <input type="checkbox" class="topic-cb" value="${topic.id}" onchange="updateSelectionState()">
+                </td>
+                <td class="col-sn">
+                    <input type="text" class="serial-input" value="${escapeHtml(topic.serialNo)}" onchange="updateSerialNo(${topic.id}, this.value)">
+                </td>
+                <td class="col-topic">${escapeHtml(topic.name)}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function updateSerialNo(id, value) {
+        const item = allTopics.find(t => t.id === id);
+        if (item) {
+            item.serialNo = value.trim();
+        }
+    }
+
+    function filterTopics() {
+        const q = document.getElementById('searchInput').value.toLowerCase();
+        const filtered = allTopics.filter(t => t.name.toLowerCase().includes(q));
+        renderTable(filtered);
+        updateSelectionState();
+    }
+
+    function toggleSelectAll(master) {
+        const cbs = document.querySelectorAll('.topic-cb');
+        cbs.forEach(cb => cb.checked = master.checked);
+        updateSelectionState();
+    }
+
+    function clearAllSelections() {
+        document.querySelectorAll('.topic-cb').forEach(cb => cb.checked = false);
+        document.getElementById('selectAll').checked = false;
+        updateSelectionState();
+    }
+
+    function updateSelectionState() {
+        const selected = document.querySelectorAll('.topic-cb:checked');
+        const count = selected.length;
+        document.getElementById('selectedCount').textContent = count;
+        document.getElementById('generateBtn').disabled = count === 0;
+
+        const numTopicsInput = document.getElementById('numTopicsSelect');
+        if (count > 0 && parseInt(numTopicsInput.value) > count) {
+            numTopicsInput.value = count;
+        }
+    }
+
+    function updatePageStyles() {
+        const marginTB = document.getElementById('marginTBInput').value ?? 3;
+        const marginLR = document.getElementById('marginLRInput').value ?? 3;
+        const fontSize = document.getElementById('fontSizeInput').value ?? 11;
+        const questionGap = document.getElementById('questionGapInput').value ?? 14;
+        const footerGap = document.getElementById('footerGapInput').value ?? 15;
+
+        document.documentElement.style.setProperty('--page-margin-tb', `${marginTB}mm`);
+        document.documentElement.style.setProperty('--page-margin-lr', `${marginLR}mm`);
+        document.documentElement.style.setProperty('--base-font-size', `${fontSize}px`);
+        document.documentElement.style.setProperty('--question-gap', `${questionGap}px`);
+        document.documentElement.style.setProperty('--footer-gap', `${footerGap}px`);
+    }
+
+    function shuffle(array) {
+        let arr = [...array];
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    function showScreen1() {
+        document.getElementById('screen2').classList.remove('active');
+        document.getElementById('screen1').classList.add('active');
+    }
+
+    function showScreen2() {
+        document.getElementById('screen1').classList.remove('active');
+        document.getElementById('screen2').classList.add('active');
+    }
+
+    function generateQuestionPapers() {
+        const selectedCbs = document.querySelectorAll('.topic-cb:checked');
+        const selectedIds = Array.from(selectedCbs).map(cb => parseInt(cb.value));
+
+        let selectedTopics = allTopics.filter(t => selectedIds.includes(t.id));
+
+        const selectedClass = document.getElementById('classSelect').value;
+        const topicsPerSet = parseInt(document.getElementById('numTopicsSelect').value) || 1;
+        const totalSets = parseInt(document.getElementById('numSets').value) || 1;
+
+        if (topicsPerSet > selectedTopics.length) {
+            alert(`You selected ${selectedTopics.length} topics, but specified ${topicsPerSet} topics per set.`);
+            return;
+        }
+
+        const wrapper = document.getElementById('a4PagesWrapper');
+        wrapper.innerHTML = '';
+
+        for (let setIdx = 1; setIdx <= totalSets; setIdx++) {
+            const shuffledPool = shuffle(selectedTopics);
+            const chosenTopics = shuffledPool.slice(0, topicsPerSet);
+
+            const page = document.createElement('div');
+            page.className = 'a4-page';
+            page.dataset.setName = `Set_${String.fromCharCode(64 + setIdx)}`;
+
+            const setLetter = String.fromCharCode(64 + setIdx);
+
+            let pageHTML = `
+                <div class="a4-header">
+                    <h2 contenteditable="true">Set ${setLetter}</h2>
+                    <div class="meta-info" contenteditable="true">
+                        <div><strong>Class:</strong> ${escapeHtml(selectedClass)}</div>
+                    </div>
+                </div>
+                <div class="a4-content-body">
+            `;
+
+            chosenTopics.forEach((topic) => {
+                const snPrefix = topic.serialNo ? `${topic.serialNo}. ` : '';
+                pageHTML += `
+                    <div class="q-item">
+                        <button class="delete-q-btn" onclick="this.closest('.q-item').remove()" title="Delete Question">✕ Remove</button>
+                        <div class="q-title" contenteditable="true">${escapeHtml(snPrefix)}${escapeHtml(topic.name)}</div>
+                        <div class="q-content" contenteditable="true">${escapeHtml(topic.content)}</div>
+                    </div>
+                `;
+            });
+
+            pageHTML += `
+                </div>
+                <div class="a4-footer" contenteditable="true">
+                    ${escapeHtml(selectedClass)} — Set ${setLetter}
+                </div>
+            `;
+
+            page.innerHTML = pageHTML;
+            wrapper.appendChild(page);
+        }
+
+        updatePageStyles();
+        showScreen2();
+    }
+
+    // Add a brand new custom editable question box to all generated pages
+    function addNewQuestionToAll() {
+        const bodies = document.querySelectorAll('.a4-content-body');
+        if (bodies.length === 0) {
+            alert("Please generate question sets first!");
+            return;
+        }
+
+        bodies.forEach(body => {
+            const newQ = document.createElement('div');
+            newQ.className = 'q-item';
+            newQ.innerHTML = `
+                <button class="delete-q-btn" onclick="this.closest('.q-item').remove()" title="Delete Question">✕ Remove</button>
+                <div class="q-title" contenteditable="true">New Question Title</div>
+                <div class="q-content" contenteditable="true">Type your custom question content or instructions here...</div>
+            `;
+            body.appendChild(newQ);
+        });
+    }
+
+    // High-Quality Image Export for Each Page (PNG format via html2canvas)
+    async function downloadAllImages() {
+        const pages = document.querySelectorAll('.a4-page');
+        if (pages.length === 0) return;
+
+        // Temporarily hide delete buttons before capturing canvas
+        const deleteBtns = document.querySelectorAll('.delete-q-btn');
+        deleteBtns.forEach(btn => btn.style.display = 'none');
+
+        for (let i = 0; i < pages.length; i++) {
+            const page = pages[i];
+            const setName = page.dataset.setName || `Page_${i + 1}`;
+
+            try {
+                const canvas = await html2canvas(page, {
+                    scale: 3,
+                    useCORS: true,
+                    logging: false,
+                    backgroundColor: '#ffffff'
+                });
+
+                const imageURL = canvas.toDataURL('image/png');
+                const link = document.createElement('a');
+                link.href = imageURL;
+                link.download = `Question_Paper_${setName}.png`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                await new Promise(resolve => setTimeout(resolve, 400));
+            } catch (error) {
+                console.error("Error generating image for " + setName, error);
+            }
+        }
+
+        // Restore delete buttons visibility
+        deleteBtns.forEach(btn => btn.style.display = 'block');
+    }
+
+    function escapeHtml(str) {
+        return String(str).replace(/&/g, "&amp;")
+                           .replace(/</g, "&lt;")
+                           .replace(/>/g, "&gt;")
+                           .replace(/"/g, "&quot;")
+                           .replace(/'/g, "&#039;");
+    }
+</script>
+</body>
+</html>
