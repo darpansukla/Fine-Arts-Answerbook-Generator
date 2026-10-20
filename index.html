@@ -121,7 +121,7 @@
             letter-spacing: 0.5px;
         }
 
-        input[type="text"], input[type="number"], select {
+        input[type="text"], input[type="number"], select, textarea {
             padding: 10px 12px;
             border: 1px solid var(--border);
             border-radius: 6px;
@@ -131,9 +131,26 @@
             background: white;
         }
 
-        input[type="text"]:focus, input[type="number"]:focus, select:focus {
+        input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:focus {
             border-color: var(--primary-light);
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        /* Names container style */
+        #namesInputContainer {
+            margin-top: 16px;
+            display: none;
+            grid-column: 1 / -1;
+            background: #f8fafc;
+            padding: 14px;
+            border-radius: 6px;
+            border: 1px dashed var(--border);
+        }
+
+        #namesInputContainer.visible {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 6px;
         }
 
         .btn {
@@ -315,7 +332,6 @@
             outline: none;
         }
 
-        /* Editable visual highlight */
         [contenteditable="true"]:hover {
             background-color: #f0f9ff;
             outline: 1px dashed var(--primary-light);
@@ -327,7 +343,6 @@
             border-radius: 2px;
         }
 
-        /* Delete Question Button Style (Hidden during canvas export) */
         .delete-q-btn {
             position: absolute;
             top: 0;
@@ -361,7 +376,7 @@
         <!-- SCREEN 1 -->
         <div id="screen1" class="view-screen active">
             <div class="card">
-                <div class="control-panel">
+                <div class="control-panel" style="grid-template-columns: 2fr 1.2fr 1fr 1fr 1.2fr; position: relative;">
                     <div class="form-group">
                         <label for="searchInput">Search Topic Name:</label>
                         <input type="text" id="searchInput" placeholder="Type topic name..." onkeyup="filterTopics()">
@@ -383,12 +398,18 @@
                     </div>
                     <div class="form-group">
                         <label for="numSets">Number of Sets:</label>
-                        <input type="number" id="numSets" min="1" value="3">
+                        <input type="number" id="numSets" min="1" value="3" oninput="toggleNamesBox()">
                     </div>
                     <div class="form-group">
                         <button class="btn" id="generateBtn" onclick="generateQuestionPapers()" disabled>
                             Generate Sets &rarr;
                         </button>
+                    </div>
+
+                    <!-- Additional Box for Names (Excel Paste Support) -->
+                    <div id="namesInputContainer" class="visible">
+                        <label for="namesTextarea">Enter or Paste Names from Excel (one name per line, matching Number of Sets):</label>
+                        <textarea id="namesTextarea" rows="3" placeholder="Rahul Sharma&#10;Priya Singh&#10;Amit Kumar"></textarea>
                     </div>
                 </div>
             </div>
@@ -421,7 +442,7 @@
                 <div class="action-bar">
                     <button class="btn btn-secondary" onclick="showScreen1()">&larr; Back to Topic List</button>
                     <div style="font-size: 0.9rem; color: var(--text-muted);">
-                        ✏️ <i>Click anywhere on text to type/edit freely. Use buttons below to add custom sections or questions.</i>
+                        ✏️ <i>Click anywhere on text to type/edit freely.</i>
                     </div>
                     <div style="display: flex; gap: 8px;">
                         <button class="btn btn-secondary" onclick="addNewQuestionToAll()">➕ Add Custom Question</button>
@@ -478,6 +499,7 @@
 
                     setStatus("Data Loaded (" + allTopics.length + " Topics)", "ready");
                     renderTable(allTopics);
+                    toggleNamesBox();
                 } else {
                     setStatus("No data found in sheet", "error");
                 }
@@ -493,6 +515,11 @@
         document.getElementById('statusText').textContent = text;
         const dot = document.getElementById('statusDot');
         dot.className = 'status-dot ' + state;
+    }
+
+    function toggleNamesBox() {
+        const container = document.getElementById('namesInputContainer');
+        container.classList.add('visible');
     }
 
     function renderTable(topics) {
@@ -595,6 +622,10 @@
         const topicsPerSet = parseInt(document.getElementById('numTopicsSelect').value) || 1;
         const totalSets = parseInt(document.getElementById('numSets').value) || 1;
 
+        // Retrieve names from textarea box (pasted from excel or written)
+        const namesRaw = document.getElementById('namesTextarea').value;
+        let namesList = namesRaw.split('\n').map(n => n.trim()).filter(n => n.length > 0);
+
         if (topicsPerSet > selectedTopics.length) {
             alert(`You selected ${selectedTopics.length} topics, but specified ${topicsPerSet} topics per set.`);
             return;
@@ -609,13 +640,18 @@
 
             const page = document.createElement('div');
             page.className = 'a4-page';
-            page.dataset.setName = `Set_${String.fromCharCode(64 + setIdx)}`;
 
             const setLetter = String.fromCharCode(64 + setIdx);
+            
+            // Assign name from list if available, otherwise default to Set name format
+            let studentName = namesList[setIdx - 1] ? namesList[setIdx - 1] : `Set_${setLetter}`;
+            // Clean filename friendly string for attribute
+            let cleanStudentName = studentName.replace(/[^a-zA-Z0-9_-]/g, "_");
+            page.dataset.fileName = `${cleanStudentName}_${selectedClass}_Set_${setLetter}`;
 
             let pageHTML = `
                 <div class="a4-header">
-                    <h2 contenteditable="true">Set ${setLetter}</h2>
+                    <h2 contenteditable="true">Set ${setLetter} — ${escapeHtml(studentName)}</h2>
                     <div class="meta-info" contenteditable="true">
                         <div><strong>Class:</strong> ${escapeHtml(selectedClass)}</div>
                     </div>
@@ -637,7 +673,7 @@
             pageHTML += `
                 </div>
                 <div class="a4-footer" contenteditable="true">
-                    ${escapeHtml(selectedClass)} — Set ${setLetter}
+                    ${escapeHtml(studentName)} | ${escapeHtml(selectedClass)} — Set ${setLetter}
                 </div>
             `;
 
@@ -649,7 +685,6 @@
         showScreen2();
     }
 
-    // Add a brand new custom editable question box to all generated pages
     function addNewQuestionToAll() {
         const bodies = document.querySelectorAll('.a4-content-body');
         if (bodies.length === 0) {
@@ -669,18 +704,17 @@
         });
     }
 
-    // High-Quality Image Export for Each Page (PNG format via html2canvas)
+    // High-Quality Image Export with custom filename: name_Class_Sets (e.g. Rahul_1st_Year_Set_A.png)
     async function downloadAllImages() {
         const pages = document.querySelectorAll('.a4-page');
         if (pages.length === 0) return;
 
-        // Temporarily hide delete buttons before capturing canvas
         const deleteBtns = document.querySelectorAll('.delete-q-btn');
         deleteBtns.forEach(btn => btn.style.display = 'none');
 
         for (let i = 0; i < pages.length; i++) {
             const page = pages[i];
-            const setName = page.dataset.setName || `Page_${i + 1}`;
+            const fileTitle = page.dataset.fileName || `Student_${i + 1}`;
 
             try {
                 const canvas = await html2canvas(page, {
@@ -693,18 +727,17 @@
                 const imageURL = canvas.toDataURL('image/png');
                 const link = document.createElement('a');
                 link.href = imageURL;
-                link.download = `Question_Paper_${setName}.png`;
+                link.download = `${fileTitle}.png`;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
 
                 await new Promise(resolve => setTimeout(resolve, 400));
             } catch (error) {
-                console.error("Error generating image for " + setName, error);
+                console.error("Error generating image for " + fileTitle, error);
             }
         }
 
-        // Restore delete buttons visibility
         deleteBtns.forEach(btn => btn.style.display = 'block');
     }
 
